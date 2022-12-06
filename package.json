@@ -1,12 +1,13 @@
 {
   "name": "@minusgix/fetch-event-source",
-  "version": "2.0.1",
+  "version": "2.0.3",
   "description": "A better API for making Event Source requests, with all the features of fetch()",
   "homepage": "https://github.com/MinusGix/fetch-event-source#readme",
   "repository": "github:MinusGix/fetch-event-source",
   "bugs": {
     "url": "https://github.com/MinusGix/fetch-event-source/issues"
   },
+  "type": "module",
   "author": "Microsoft",
   "license": "MIT",
   "main": "lib/cjs/index.js",
@@ -18,7 +19,7 @@
     "prebuild": "npm run clean",
     "build": "tsc && tsc -p tsconfig.esm.json",
     "test": "nyc jasmine --config=jasmine.json",
-    "prepublishOnly": "npm run build && npm run test"
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/jasmine": "^3.6.9",
