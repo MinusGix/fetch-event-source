@@ -1,4 +1,5 @@
 import { EventSourceMessage, getBytes, getLines, getMessages } from './parse';
+import fetch, { Response, RequestInit, RequestInfo } from 'node-fetch';
 
 export const EventStreamContentType = 'text/event-stream';
 
@@ -49,7 +50,7 @@ export interface FetchEventSourceInit extends RequestInit {
      */
     openWhenHidden?: boolean;
 
-    /** The Fetch function to use. Defaults to window.fetch */
+    /** The Fetch function to use. Defaults to `fetch` from node-fetch */
     fetch?: typeof fetch;
 }
 
@@ -72,22 +73,13 @@ export function fetchEventSource(input: RequestInfo, {
         }
 
         let curRequestController: AbortController;
-        function onVisibilityChange() {
-            curRequestController.abort(); // close existing request on every visibility change
-            if (!document.hidden) {
-                create(); // page is now visible again, recreate request.
-            }
-        }
-
-        if (!openWhenHidden) {
-            document.addEventListener('visibilitychange', onVisibilityChange);
-        }
 
         let retryInterval = DefaultRetryInterval;
-        let retryTimer = 0;
+        let retryTimer: NodeJS.Timeout;
         function dispose() {
-            document.removeEventListener('visibilitychange', onVisibilityChange);
-            window.clearTimeout(retryTimer);
+            if (retryTimer) {
+                clearTimeout(retryTimer);
+            }
             curRequestController.abort();
         }
 
@@ -97,19 +89,19 @@ export function fetchEventSource(input: RequestInfo, {
             resolve(); // don't waste time constructing/logging errors
         });
 
-        const fetch = inputFetch ?? window.fetch;
+        const fetchFn: (url: RequestInfo, init?: RequestInit) => Promise<Response> = inputFetch ?? fetch;
         const onopen = inputOnOpen ?? defaultOnOpen;
         async function create() {
             curRequestController = new AbortController();
             try {
-                const response = await fetch(input, {
+                const response = await fetchFn(input, {
                     ...rest,
                     headers,
                     signal: curRequestController.signal,
                 });
 
                 await onopen(response);
-                
+
                 await getBytes(response.body!, getLines(getMessages(id => {
                     if (id) {
                         // store the id and send it back on the next retry:
@@ -131,8 +123,8 @@ export function fetchEventSource(input: RequestInfo, {
                     try {
                         // check if we need to retry:
                         const interval: any = onerror?.(err) ?? retryInterval;
-                        window.clearTimeout(retryTimer);
-                        retryTimer = window.setTimeout(create, interval);
+                        clearTimeout(retryTimer);
+                        retryTimer = setTimeout(create, interval);
                     } catch (innerErr) {
                         // we should not retry anymore:
                         dispose();

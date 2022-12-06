@@ -15,7 +15,6 @@
         "noUnusedLocals": true,
         "noUnusedParameters": true,
         "lib": [
-            "DOM",
             "ES2018"
         ]
     }
